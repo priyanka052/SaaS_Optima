@@ -2,3 +2,6 @@ fastapi
 uvicorn[standard]
 sqlalchemy
 pandas
+requests
+
+beautifulsoup4
