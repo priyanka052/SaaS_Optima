@@ -1,10 +1,12 @@
 import requests
 import re
+from datetime import datetime, timezone
 from bs4 import BeautifulSoup
 
 from app.db import SessionLocal
 from app.models.pricing import Pricing
 from app.models.tool import Tool
+
 
 def scrape_slack_pricing():
     url = "https://slack.com/pricing"
@@ -15,7 +17,9 @@ def scrape_slack_pricing():
     if not tool:
         print("Slack tool not found in database.")
         return []
+
     print("Slack tool ID:", tool.id)
+
     response = requests.get(url)
     response.raise_for_status()
 
@@ -62,38 +66,51 @@ def scrape_slack_pricing():
             "source_url": url,
         })
 
+    # Insert new prices or update existing prices
     with SessionLocal() as session:
         for item in pricing_data:
-            if item["yearly_price"] is not None:
-                session.add(
-                    Pricing(
-                        tool_id=tool.id,
-                        plan=item["plan"],
-                        price=item["yearly_price"],
-                        currency=item["currency"],
-                        billing_period="yearly",
-                        source=item["source"],
-                        source_url=item["source_url"],
+            prices = [
+                ("yearly", item["yearly_price"]),
+                ("monthly", item["monthly_price"]),
+            ]
+
+            for billing_period, price in prices:
+                if price is None:
+                    continue
+
+                existing = (
+                    session.query(Pricing)
+                    .filter(
+                        Pricing.tool_id == tool.id,
+                        Pricing.plan == item["plan"],
+                        Pricing.billing_period == billing_period,
                     )
+                    .first()
                 )
 
-            if item["monthly_price"] is not None:
-                session.add(
-                    Pricing(
-                        tool_id=tool.id,
-                        plan=item["plan"],
-                        price=item["monthly_price"],
-                        currency=item["currency"],
-                        billing_period="monthly",
-                        source=item["source"],
-                        source_url=item["source_url"],
+                if existing:
+                    existing.price = price
+                    existing.currency = item["currency"]
+                    existing.source = item["source"]
+                    existing.source_url = item["source_url"]
+                    existing.last_updated = datetime.now(timezone.utc)
+
+                else:
+                    session.add(
+                        Pricing(
+                            tool_id=tool.id,
+                            plan=item["plan"],
+                            price=price,
+                            currency=item["currency"],
+                            billing_period=billing_period,
+                            source=item["source"],
+                            source_url=item["source_url"],
+                        )
                     )
-                )
 
         session.commit()
-    
-    return pricing_data
 
+    return pricing_data
 
 
 if __name__ == "__main__":
