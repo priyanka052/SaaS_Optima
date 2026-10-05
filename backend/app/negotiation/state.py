@@ -22,5 +22,11 @@ class NegotiationState(TypedDict, total=False):
     history: list
 
     status: str
+
     final_price: float | None
-    savings_percent: float | None
+
+    # Deal scoring inputs/results
+    feature_coverage: float
+    contract_score: float
+    savings_percent: float
+    deal_score: float
