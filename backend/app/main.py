@@ -1,8 +1,9 @@
-from app.api import overlap as overlap_api
 from fastapi import FastAPI
 
 from app.api import tools
 from app.api import pricing as pricing_api
+from app.api import overlap as overlap_api
+from app.api import negotiation as negotiation_api
 
 from app.db import Base, engine
 from app.models import pricing as pricing_model
@@ -20,6 +21,7 @@ app = FastAPI(title="SaaSOptima")
 app.include_router(tools.router)
 app.include_router(pricing_api.router)
 app.include_router(overlap_api.router)
+app.include_router(negotiation_api.router)
 
 
 # Health check
