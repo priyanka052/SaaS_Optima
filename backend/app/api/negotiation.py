@@ -1,6 +1,9 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from app.db import SessionLocal
+from app.models.tool import Tool
+from app.models.pricing import Pricing
 from app.negotiation.graph import negotiation_graph
 
 
@@ -12,8 +15,10 @@ router = APIRouter(
 
 class NegotiationRequest(BaseModel):
     tool_name: str
-    base_price: float = Field(gt=0)
     buyer_budget: float = Field(gt=0)
+
+    # Temporary until vendor discount/flexibility data
+    # is added to the knowledge base.
     vendor_min_price: float = Field(gt=0)
 
     feature_coverage: float = Field(
@@ -37,10 +42,53 @@ class NegotiationRequest(BaseModel):
 
 @router.post("")
 def start_negotiation(request: NegotiationRequest):
-    initial_state = {
-        "tool_name": request.tool_name,
 
-        "base_price": request.base_price,
+    with SessionLocal() as session:
+
+        # Find the requested SaaS tool.
+        tool = (
+            session.query(Tool)
+            .filter(Tool.name.ilike(request.tool_name))
+            .first()
+        )
+
+        if not tool:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Tool '{request.tool_name}' not found."
+            )
+
+        # Find the cheapest available monthly plan.
+        pricing = (
+            session.query(Pricing)
+            .filter(
+                Pricing.tool_id == tool.id,
+                Pricing.billing_period == "monthly"
+            )
+            .order_by(Pricing.price.asc())
+            .first()
+        )
+
+        # Prefer the Pricing table.
+        if pricing:
+            base_price = pricing.price
+            selected_plan = pricing.plan
+            currency = pricing.currency
+        elif tool.price_inr is not None:
+            # Backward-compatible fallback.
+            base_price = tool.price_inr
+            selected_plan = None
+            currency = "INR"
+        else:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No pricing found for '{tool.name}'."
+            )
+
+    initial_state = {
+        "tool_name": tool.name,
+
+        "base_price": base_price,
         "buyer_budget": request.buyer_budget,
         "vendor_min_price": request.vendor_min_price,
 
@@ -68,6 +116,11 @@ def start_negotiation(request: NegotiationRequest):
 
     return {
         "tool_name": result.get("tool_name"),
+        "plan": selected_plan,
+        "currency": currency,
+        "base_price": base_price,
+        "buyer_budget": request.buyer_budget,
+        "vendor_min_price": request.vendor_min_price,
         "status": result.get("status"),
         "final_price": result.get("final_price"),
         "savings_percent": result.get("savings_percent"),
