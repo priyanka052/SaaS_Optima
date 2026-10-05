@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
 from app.db import SessionLocal
 from app.models.tool import Tool
@@ -12,7 +12,13 @@ router = APIRouter(
 
 
 @router.get("")
-def get_overlap():
+def get_overlap(
+    threshold: float = Query(
+        default=0.0,
+        ge=0.0,
+        le=100.0
+    )
+):
     with SessionLocal() as session:
         tools = session.query(Tool).all()
 
@@ -27,11 +33,13 @@ def get_overlap():
                 features_b = parse_features(tool_b.features)
 
                 score = jaccard_similarity(features_a, features_b)
+                similarity = round(score * 100, 2)
 
-                results.append({
-                    "tool_a": tool_a.name,
-                    "tool_b": tool_b.name,
-                    "similarity": round(score * 100, 2)
-                })
+                if similarity >= threshold:
+                    results.append({
+                        "tool_a": tool_a.name,
+                        "tool_b": tool_b.name,
+                        "similarity": similarity
+                    })
 
         return results
