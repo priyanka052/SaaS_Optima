@@ -5,6 +5,8 @@ from app.db import SessionLocal
 from app.models.tool import Tool
 from app.models.pricing import Pricing
 
+from app.ml.deal_scoring import calculate_required_feature_coverage
+
 from app.negotiation.graph import negotiation_graph
 from app.negotiation.policy import (
     DEFAULT_VENDOR_POLICY,
@@ -23,17 +25,14 @@ class NegotiationRequest(BaseModel):
 
     buyer_budget: float = Field(gt=0)
 
-    # Optional demo/configurable negotiation policy.
+    required_features: list[str] = Field(
+        default_factory=list
+    )
+
     max_discount_percent: float = Field(
         default=DEFAULT_VENDOR_POLICY["max_discount_percent"],
         ge=0.0,
         le=50.0
-    )
-
-    feature_coverage: float = Field(
-        default=0.0,
-        ge=0.0,
-        le=100.0
     )
 
     contract_score: float = Field(
@@ -92,6 +91,18 @@ def start_negotiation(request: NegotiationRequest):
                 detail=f"No pricing found for '{tool.name}'."
             )
 
+        # Calculate feature coverage automatically.
+        tool_features = [
+            feature.strip()
+            for feature in tool.features.split(";")
+            if feature.strip()
+        ]
+
+        feature_coverage = calculate_required_feature_coverage(
+            request.required_features,
+            tool_features
+        )
+
     vendor_min_price = calculate_vendor_min_price(
         base_price,
         request.max_discount_percent
@@ -117,7 +128,7 @@ def start_negotiation(request: NegotiationRequest):
 
         "final_price": None,
 
-        "feature_coverage": request.feature_coverage,
+        "feature_coverage": feature_coverage,
         "contract_score": request.contract_score,
 
         "savings_percent": 0.0,
@@ -134,6 +145,9 @@ def start_negotiation(request: NegotiationRequest):
         "base_price": base_price,
         "buyer_budget": request.buyer_budget,
 
+        "required_features": request.required_features,
+        "feature_coverage": result.get("feature_coverage"),
+
         "max_discount_percent": request.max_discount_percent,
         "vendor_min_price": vendor_min_price,
 
@@ -141,7 +155,6 @@ def start_negotiation(request: NegotiationRequest):
         "final_price": result.get("final_price"),
 
         "savings_percent": result.get("savings_percent"),
-        "feature_coverage": result.get("feature_coverage"),
         "contract_score": result.get("contract_score"),
         "deal_score": result.get("deal_score"),
 
