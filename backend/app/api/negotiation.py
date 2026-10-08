@@ -4,7 +4,12 @@ from pydantic import BaseModel, Field
 from app.db import SessionLocal
 from app.models.tool import Tool
 from app.models.pricing import Pricing
+
 from app.negotiation.graph import negotiation_graph
+from app.negotiation.policy import (
+    DEFAULT_VENDOR_POLICY,
+    calculate_vendor_min_price,
+)
 
 
 router = APIRouter(
@@ -15,11 +20,15 @@ router = APIRouter(
 
 class NegotiationRequest(BaseModel):
     tool_name: str
+
     buyer_budget: float = Field(gt=0)
 
-    # Temporary until vendor discount/flexibility data
-    # is added to the knowledge base.
-    vendor_min_price: float = Field(gt=0)
+    # Optional demo/configurable negotiation policy.
+    max_discount_percent: float = Field(
+        default=DEFAULT_VENDOR_POLICY["max_discount_percent"],
+        ge=0.0,
+        le=50.0
+    )
 
     feature_coverage: float = Field(
         default=0.0,
@@ -28,7 +37,7 @@ class NegotiationRequest(BaseModel):
     )
 
     contract_score: float = Field(
-        default=0.0,
+        default=DEFAULT_VENDOR_POLICY["contract_score"],
         ge=0.0,
         le=100.0
     )
@@ -45,7 +54,6 @@ def start_negotiation(request: NegotiationRequest):
 
     with SessionLocal() as session:
 
-        # Find the requested SaaS tool.
         tool = (
             session.query(Tool)
             .filter(Tool.name.ilike(request.tool_name))
@@ -58,7 +66,6 @@ def start_negotiation(request: NegotiationRequest):
                 detail=f"Tool '{request.tool_name}' not found."
             )
 
-        # Find the cheapest available monthly plan.
         pricing = (
             session.query(Pricing)
             .filter(
@@ -69,28 +76,33 @@ def start_negotiation(request: NegotiationRequest):
             .first()
         )
 
-        # Prefer the Pricing table.
         if pricing:
             base_price = pricing.price
             selected_plan = pricing.plan
             currency = pricing.currency
+
         elif tool.price_inr is not None:
-            # Backward-compatible fallback.
             base_price = tool.price_inr
             selected_plan = None
             currency = "INR"
+
         else:
             raise HTTPException(
                 status_code=404,
                 detail=f"No pricing found for '{tool.name}'."
             )
 
+    vendor_min_price = calculate_vendor_min_price(
+        base_price,
+        request.max_discount_percent
+    )
+
     initial_state = {
         "tool_name": tool.name,
 
         "base_price": base_price,
         "buyer_budget": request.buyer_budget,
-        "vendor_min_price": request.vendor_min_price,
+        "vendor_min_price": vendor_min_price,
 
         "current_offer": None,
         "previous_offer": None,
@@ -118,14 +130,20 @@ def start_negotiation(request: NegotiationRequest):
         "tool_name": result.get("tool_name"),
         "plan": selected_plan,
         "currency": currency,
+
         "base_price": base_price,
         "buyer_budget": request.buyer_budget,
-        "vendor_min_price": request.vendor_min_price,
+
+        "max_discount_percent": request.max_discount_percent,
+        "vendor_min_price": vendor_min_price,
+
         "status": result.get("status"),
         "final_price": result.get("final_price"),
+
         "savings_percent": result.get("savings_percent"),
         "feature_coverage": result.get("feature_coverage"),
         "contract_score": result.get("contract_score"),
         "deal_score": result.get("deal_score"),
+
         "history": result.get("history", []),
     }
