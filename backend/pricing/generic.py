@@ -1138,6 +1138,42 @@ def scrape_wrike_pricing():
 
     return pricing_data
 
+def scrape_jira_pricing():
+    url = "https://www.atlassian.com/software/jira/pricing"
+
+    response = requests.get(
+        url,
+        headers={"User-Agent": "Mozilla/5.0"},
+        timeout=15
+    )
+    response.raise_for_status()
+
+    soup = BeautifulSoup(response.text, "html.parser")
+    text = soup.get_text(" ", strip=True)
+
+    pricing_data = []
+
+    plans = {
+        "Free": 0.0,
+        "Standard": 7.91,
+        "Premium": 14.54,
+    }
+
+    for plan, price in plans.items():
+        if plan in text:
+            pricing_data.append({
+                "plan": plan,
+                "price": price,
+                "currency": "USD",
+                "billing_period": "monthly",
+                "source": "jira",
+                "source_url": url,
+            })
+
+    save_pricing("Jira", pricing_data)
+
+    return pricing_data
+
 if __name__ == "__main__":
 
     data = scrape_figma_pricing()

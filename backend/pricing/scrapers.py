@@ -1,7 +1,7 @@
 from pricing.updater import (
     scrape_slack_pricing,
     scrape_teams_pricing,
-    scrape_zoom_pricing,
+    scrape_zoom_pricing
 )
 
 
@@ -31,7 +31,7 @@ from pricing.generic import (
     scrape_wrike_pricing,
     scrape_xero_pricing,
     scrape_zoho_crm_pricing,
-    
+    scrape_jira_pricing
 )
 
 
@@ -78,6 +78,7 @@ SCRAPERS = {
     "Wrike": scrape_wrike_pricing,
     "Xero": scrape_xero_pricing,
     "Zoho CRM": scrape_zoho_crm_pricing,
+    "Jira": scrape_jira_pricing,
 
 }
 
