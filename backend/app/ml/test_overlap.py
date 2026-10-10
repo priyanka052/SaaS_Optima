@@ -1,9 +1,9 @@
 import csv
 
-from overlap import jaccard_similarity, parse_features
+from app.ml.overlap import jaccard_similarity, parse_features
 
 
-with open("backend/data/tools.csv", newline="", encoding="utf-8") as file:
+with open("data/tools.csv", newline="", encoding="utf-8") as file:
     reader = csv.DictReader(file)
     tools = list(reader)
 

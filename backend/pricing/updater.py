@@ -1,6 +1,6 @@
-import requests
+import requests;
 import re
-
+from datetime import datetime, timezone
 from bs4 import BeautifulSoup
 
 from app.db import SessionLocal
@@ -121,6 +121,7 @@ def scrape_slack_pricing():
 
     return pricing_data
 
+    return pricing_data
 
 # ============================================================
 # MICROSOFT TEAMS PRICING
