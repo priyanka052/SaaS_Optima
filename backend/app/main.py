@@ -9,6 +9,7 @@ from app.api import email as email_api
 from app.api import evaluation as evaluation_api
 from app.db import Base, engine
 from app.models import pricing as pricing_model
+from app.api import chat as chat_api
 
 
 # Create database tables if they don't already exist
@@ -28,6 +29,8 @@ app.include_router(compare_api.router)
 app.include_router(history_api.router)
 app.include_router(email_api.router)
 app.include_router(evaluation_api.router)
+app.include_router(chat_api.router)
+
 # Health check
 @app.get("/api/health")
 def health_check():
