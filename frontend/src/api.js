@@ -35,6 +35,17 @@ export const api = {
   overlap: (threshold = 0) => request(`/overlap?${query({ threshold })}`),
   compare: (toolA, toolB) => request(`/compare?${query({ tool_a: toolA, tool_b: toolB })}`),
   negotiate: (body) => request('/negotiation', { method: 'POST', body: JSON.stringify(body) }),
+  email: (negotiationId) =>  request(`/email/${negotiationId}`),
+  history: () =>
+    request('/history'),
+  chat: (message, sessionId = null) =>
+    request('/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        message,
+        session_id: sessionId,
+      }),
+    }),
 };
 
 export function formatMoney(value, currency = 'INR') {

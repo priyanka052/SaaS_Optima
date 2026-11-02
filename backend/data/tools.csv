@@ -1,3 +1,30 @@
 name,category,url,features,price_inr_per_user_month
 Slack,Communication,https://slack.com,chat;channels;video calls;file sharing;integrations,750
 Microsoft Teams,Communication,https://www.microsoft.com/microsoft-teams,chat;channels;video calls;file sharing;collaboration,300
+Zoom,Communication,https://zoom.us,video meetings;chat;webinars;screen sharing,0
+Asana,Project Management,https://asana.com,tasks;projects;workflows;collaboration,0
+BambooHR,Human Resources,https://www.bamboohr.com,employee records;HR;payroll;time tracking,0
+Basecamp,Project Management,https://basecamp.com,projects;tasks;messaging;file sharing,0
+Bitbucket,Development,https://bitbucket.org,git repositories;code collaboration;CI/CD,0
+Buffer,Marketing,https://buffer.com,social scheduling;publishing;analytics,0
+Claude,AI,https://claude.ai,AI assistant;chat;document analysis,0
+ClickUp,Project Management,https://clickup.com,tasks;projects;docs;dashboards,0
+Deel,Human Resources,https://www.deel.com,global payroll;HR;contracts;compliance,0
+Discord,Communication,https://discord.com,chat;voice;video;communities,0
+Dropbox,Storage,https://www.dropbox.com,file storage;file sharing;collaboration;sync,0
+Figma,Design,https://www.figma.com,UI design;prototyping;collaboration,0
+FreshBooks,Accounting,https://www.freshbooks.com,invoicing;accounting;expenses;payments,0
+Freshdesk,Customer Support,https://www.freshworks.com/freshdesk/,ticketing;customer support;automation,0
+Freshsales,CRM,https://www.freshworks.com/freshsales-crm/,CRM;sales;lead management;automation,0
+GitLab,Development,https://gitlab.com,git repositories;CI/CD;DevOps;issue tracking,0
+Google Meet,Communication,https://meet.google.com,video meetings;screen sharing;chat,0
+Help Scout,Customer Support,https://www.helpscout.com,customer support;email;knowledge base,0
+Hootsuite,Marketing,https://www.hootsuite.com,social scheduling;analytics;publishing,0
+Intercom,Customer Support,https://www.intercom.com,messaging;customer support;automation;chatbots,0
+Monday.com,Project Management,https://monday.com,projects;tasks;workflows;collaboration,0
+Postman,Development,https://www.postman.com,API testing;API collaboration;automation,0
+Trello,Project Management,https://trello.com,boards;tasks;collaboration;workflow,0
+Wrike,Project Management,https://www.wrike.com,projects;tasks;workflows;collaboration,0
+Xero,Accounting,https://www.xero.com,accounting;invoicing;expenses;payments,0
+Zoho CRM,CRM,https://www.zoho.com/crm/,CRM;sales;marketing;automation,0
+Jira,Development,https://www.atlassian.com/software/jira,issue tracking;project management;agile;development,0
