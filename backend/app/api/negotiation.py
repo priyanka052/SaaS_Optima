@@ -1,3 +1,4 @@
+
 from datetime import datetime
 
 from fastapi import APIRouter, HTTPException
@@ -26,11 +27,16 @@ router = APIRouter(
 
 class NegotiationRequest(BaseModel):
     tool_name: str
-
     buyer_budget: float = Field(gt=0)
 
     required_features: list[str] = Field(
         default_factory=list
+    )
+
+    feature_coverage: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=100.0
     )
 
     max_discount_percent: float = Field(
@@ -98,53 +104,51 @@ def start_negotiation(request: NegotiationRequest):
                 detail=f"No pricing found for '{tool_name}'."
             )
 
-        # Calculate feature coverage from the tool's actual features.
-        tool_features = [
-            feature.strip()
-            for feature in tool.features.split(";")
-            if feature.strip()
-        ]
+        # Step 2: Determine feature coverage.
+        if request.required_features:
+            tool_features = [
+                feature.strip()
+                for feature in tool.features.split(";")
+                if feature.strip()
+            ]
 
-        feature_coverage = calculate_required_feature_coverage(
-            request.required_features,
-            tool_features
-        )
+            feature_coverage = calculate_required_feature_coverage(
+                request.required_features,
+                tool_features
+            )
+        else:
+            feature_coverage = request.feature_coverage or 0.0
 
-    # Step 2: Apply the configurable vendor negotiation policy.
+    # Step 3: Calculate vendor minimum price.
     vendor_min_price = calculate_vendor_min_price(
         base_price,
         request.max_discount_percent
     )
 
-    # Step 3: Prepare the LangGraph initial state.
+    # Step 4: Prepare LangGraph initial state.
     initial_state = {
         "tool_name": tool_name,
         "base_price": base_price,
         "buyer_budget": request.buyer_budget,
         "vendor_min_price": vendor_min_price,
-
         "current_offer": None,
         "previous_offer": None,
-
         "round_number": 0,
         "max_rounds": request.max_rounds,
         "turn": "buyer",
-
         "history": [],
         "status": "negotiating",
         "final_price": None,
-
         "feature_coverage": feature_coverage,
         "contract_score": request.contract_score,
-
         "savings_percent": 0.0,
         "deal_score": 0.0,
     }
 
-    # Step 4: Run Buyer Agent <-> Vendor Agent negotiation.
+    # Step 5: Run negotiation.
     result = negotiation_graph.invoke(initial_state)
 
-    # Step 5: Persist the negotiation and its audit history.
+    # Step 6: Persist negotiation and history.
     with SessionLocal() as session:
 
         negotiation = Negotiation(
@@ -161,8 +165,6 @@ def start_negotiation(request: NegotiationRequest):
         )
 
         session.add(negotiation)
-
-        # Obtain the database ID before saving the turns.
         session.flush()
 
         negotiation_id = negotiation.id
@@ -181,29 +183,24 @@ def start_negotiation(request: NegotiationRequest):
                 )
             )
 
-        # Save the negotiation and all its turns together.
         session.commit()
 
-    # Step 6: Return the result, including its persistent ID.
+    # Step 7: Return negotiation result.
     return {
         "negotiation_id": negotiation_id,
         "tool_name": tool_name,
         "plan": selected_plan,
         "currency": currency,
-
         "base_price": base_price,
         "buyer_budget": request.buyer_budget,
         "vendor_min_price": vendor_min_price,
         "max_discount_percent": request.max_discount_percent,
-
         "required_features": request.required_features,
         "feature_coverage": result.get("feature_coverage"),
         "contract_score": result.get("contract_score"),
-
         "status": result.get("status"),
         "final_price": result.get("final_price"),
         "savings_percent": result.get("savings_percent"),
         "deal_score": result.get("deal_score"),
-
         "history": result.get("history", []),
     }

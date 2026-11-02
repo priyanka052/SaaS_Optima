@@ -1,12 +1,17 @@
+from app.negotiation.policy import calculate_vendor_counter_offer
+
+
 def vendor_agent(state):
     current_offer = state["current_offer"]
     vendor_min_price = state["vendor_min_price"]
+    base_price = state["base_price"]
+
     max_rounds = state["max_rounds"]
     round_number = state["round_number"]
 
-    history = state.get("history", [])
+    history = list(state.get("history", []))
 
-    # Vendor accepts an offer that meets its minimum.
+    # Vendor accepts offers that meet its minimum.
     if current_offer >= vendor_min_price:
         history.append({
             "agent": "vendor",
@@ -25,7 +30,8 @@ def vendor_agent(state):
         history.append({
             "agent": "vendor",
             "action": "reject",
-            "offer": current_offer
+            "offer": current_offer,
+            "reason": "Maximum negotiation rounds reached."
         })
 
         return {
@@ -34,14 +40,12 @@ def vendor_agent(state):
             "history": history
         }
 
-    # Vendor makes a concession toward its minimum.
-    counter_offer = round(
-        current_offer + (vendor_min_price - current_offer) * 0.5,
-        2
+    # Vendor makes a strategic counteroffer.
+    counter_offer = calculate_vendor_counter_offer(
+        base_price,
+        vendor_min_price,
+        round_number
     )
-
-    # Never go below vendor minimum.
-    counter_offer = max(counter_offer, vendor_min_price)
 
     history.append({
         "agent": "vendor",
